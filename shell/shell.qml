@@ -74,10 +74,11 @@ ShellRoot {
   // (Qt.clearComponentCache does not exist in Qt 6), so rebuilding a changed
   // plugin in place keeps running its old code. A soft Quickshell reload
   // starts a fresh engine and reuses the existing windows. Never reload
-  // under the lock screen; retry once the session is unlocked.
+  // under the lock screen; retry once the session is unlocked. The lock
+  // service is an authentication service, so its state comes from the
+  // private store rather than the public service map.
   function reloadChangedPlugins() {
-    var lock = shell.firstPartyServiceFor("omarchy.lock")
-    if (lock && lock.locked) {
+    if (AuthServiceStore.isLocked("omarchy.lock")) {
       localPluginReloadTimer.interval = 2000
       localPluginReloadTimer.restart()
       return
