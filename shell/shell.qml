@@ -67,7 +67,22 @@ ShellRoot {
   Timer {
     id: localPluginReloadTimer
     interval: 150
-    onTriggered: shell.reloadPlugins()
+    onTriggered: shell.reloadChangedPlugins()
+  }
+
+  // QML caches compiled components by URL and gives no way to evict one
+  // (Qt.clearComponentCache does not exist in Qt 6), so rebuilding a changed
+  // plugin in place keeps running its old code. A soft Quickshell reload
+  // starts a fresh engine and reuses the existing windows. Never reload
+  // under the lock screen; retry once the session is unlocked.
+  function reloadChangedPlugins() {
+    var lock = shell.firstPartyServiceFor("omarchy.lock")
+    if (lock && lock.locked) {
+      localPluginReloadTimer.interval = 2000
+      localPluginReloadTimer.restart()
+      return
+    }
+    Quickshell.reload(false)
   }
 
   onShellConfigChanged: {
@@ -1525,7 +1540,6 @@ ShellRoot {
       shell.pluginReloadPending = true
       return
     }
-    if (typeof Qt.clearComponentCache === "function") Qt.clearComponentCache()
     shell.pluginRegistry.rescan()
   }
 
